@@ -929,14 +929,14 @@ async function submitDomainForm(e) {
     const domains = domainValue.split(/[\s,]+/).filter(d => d.trim());
 
     if (domains.length === 0) {
-        alert('请输入至少一个域名');
+        showToast('请输入至少一个域名', 'error');
         return;
     }
 
     // 验证所有域名格式
     const invalidDomains = domains.filter(d => !isValidDomainFormat(d));
     if (invalidDomains.length > 0) {
-        alert(`以下域名格式不正确:\n${invalidDomains.join('\n')}`);
+        showToast(`域名格式不正确: ${invalidDomains[0]}`, 'error');
         return;
     }
 
@@ -957,7 +957,7 @@ async function submitDomainForm(e) {
 
     if (isEditMode) {
         // 编辑模式 (只支持单条)
-        if (domains.length > 1) { alert('编辑模式下只能修改一个域名'); return; }
+        if (domains.length > 1) { showToast('编辑模式下只能修改一个域名', 'error'); return; }
         requestData = {
             ...commonData,
             domain: domains[0],
@@ -987,19 +987,18 @@ async function submitDomainForm(e) {
         modal.style.display = 'none';
 
         if (result.message) {
-            alert(result.message);
+            showToast(result.message, 'success');
             if (result.errors) {
                 console.warn('部分域名添加失败:', result.errors);
-                alert('部分域名添加失败:\n' + result.errors.join('\n'));
             }
         } else {
-            alert('保存成功！');
+            showToast('保存成功', 'success');
         }
 
         await fetchDomains();
     } catch (error) {
         console.error('保存域名失败:', error);
-        alert('保存域名失败: ' + error.message);
+        showToast('保存失败: ' + error.message, 'error');
     }
 }
 
