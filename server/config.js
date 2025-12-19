@@ -18,7 +18,13 @@ function getConfig() {
         blogName: process.env.BLOG_NAME || '',
         tgid: process.env.TGID || '',
         tgtoken: process.env.TGTOKEN || '',
-        cronSchedule: process.env.CRON_SCHEDULE || '0 9,21 * * *'
+        cronSchedule: process.env.CRON_SCHEDULE || '0 9,21 * * *',
+        // WebDAV 备份配置
+        webdavUrl: process.env.WEBDAV_URL || '',
+        webdavUser: process.env.WEBDAV_USER || '',
+        webdavPass: process.env.WEBDAV_PASS || '',
+        webdavRetention: Number(process.env.WEBDAV_RETENTION || 7),
+        webdavAutoBackup: process.env.WEBDAV_AUTO_BACKUP === 'true'
     };
 
     // 合并配置，文件配置优先

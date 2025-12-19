@@ -539,7 +539,13 @@ async function saveSettings(e) {
         blogName: document.getElementById('set_blogName').value,
         blogURL: document.getElementById('set_blogURL').value,
         tgid: document.getElementById('set_tgid').value,
-        tgtoken: document.getElementById('set_tgtoken').value
+        tgtoken: document.getElementById('set_tgtoken').value,
+        // WebDAV 配置
+        webdavUrl: document.getElementById('set_webdavUrl').value,
+        webdavUser: document.getElementById('set_webdavUser').value,
+        webdavPass: document.getElementById('set_webdavPass').value,
+        webdavRetention: parseInt(document.getElementById('set_webdavRetention').value) || 7,
+        webdavAutoBackup: document.getElementById('set_webdavAutoBackup').checked
     };
 
     try {
@@ -695,28 +701,39 @@ function createDomainCard(info) {
     }
 
     // 仪表盘计算
-    const radius = 26;
+    const radius = 30;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (progress / 100) * circumference;
+
+    // 格式化日期为更友好的格式
+    const formatDisplayDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const d = new Date(dateStr);
+        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+    };
 
     const card = document.createElement('div');
     card.className = 'domain-card';
     card.innerHTML = `
+        <!-- 左上角状态标签 -->
+        <div class="status-tag" style="background-color: ${statusColor};">${statusText}</div>
+        
+        <!-- 卡片头部：域名信息 + 仪表盘 -->
         <div class="card-header">
             <input type="checkbox" class="domain-checkbox" data-domain="${info.domain}">
             <div class="card-domain">
                 <div class="domain-name">
                     <a href="http://${info.domain}" target="_blank">${info.domain}</a>
-                    ${info.systemURL ? `<a href="${info.systemURL}" target="_blank" class="registrar-link"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                    ${info.systemURL ? `<a href="${info.systemURL}" target="_blank" class="registrar-link" title="访问注册商"><i class="fas fa-external-link-alt"></i></a>` : ''}
                 </div>
                 <div class="domain-registrar">${info.system || '未知注册商'}</div>
             </div>
             
             <!-- 仪表盘 -->
             <div class="gauge-container">
-                <svg class="gauge-svg" viewBox="0 0 60 60">
-                    <circle class="gauge-bg" cx="30" cy="30" r="${radius}"></circle>
-                    <circle class="gauge-fill" cx="30" cy="30" r="${radius}" 
+                <svg class="gauge-svg" viewBox="0 0 70 70">
+                    <circle class="gauge-bg" cx="35" cy="35" r="${radius}"></circle>
+                    <circle class="gauge-fill" cx="35" cy="35" r="${radius}" 
                         style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}; stroke: ${statusColor}">
                     </circle>
                 </svg>
@@ -724,25 +741,34 @@ function createDomainCard(info) {
             </div>
         </div>
         
-        <div class="card-info">
-            <div class="info-item">
-                <span class="label">注册时间</span>
-                <span class="value">${info.registrationDate || '-'}</span>
+        <!-- 卡片内容：两列信息布局 -->
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-cell">
+                    <i class="fas fa-calendar-plus"></i>
+                    <div class="info-content">
+                        <span class="info-label">注册</span>
+                        <span class="info-value">${formatDisplayDate(info.registrationDate)}</span>
+                    </div>
+                </div>
+                <div class="info-cell">
+                    <i class="fas fa-calendar-times"></i>
+                    <div class="info-content">
+                        <span class="info-label">到期</span>
+                        <span class="info-value">${formatDisplayDate(info.expirationDate)}</span>
+                    </div>
+                </div>
             </div>
-            <div class="info-item">
-                <span class="label">到期时间</span>
-                <span class="value">${info.expirationDate || '-'}</span>
-            </div>
-            <div class="info-item">
-                <span class="label">剩余天数</span>
-                <span class="value" style="color: ${statusColor}; font-weight: bold;">${daysRemaining} 天</span>
+            <div class="days-remaining" style="color: ${statusColor};">
+                <i class="fas fa-hourglass-half"></i>
+                <span>剩余 <strong>${daysRemaining}</strong> 天</span>
             </div>
         </div>
         
-        <div class="card-footer">
-            <div class="domain-status" style="background-color: ${statusColor}; margin-right: auto;">${statusText}</div>
-            <button class="btn-icon edit-btn" title="编辑"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon delete-btn" title="删除"><i class="fas fa-trash-alt"></i></button>
+        <!-- 悬浮操作按钮 -->
+        <div class="card-actions">
+            <button class="action-icon edit-btn" title="编辑"><i class="fas fa-edit"></i></button>
+            <button class="action-icon delete-btn" title="删除"><i class="fas fa-trash-alt"></i></button>
         </div>
     `;
 
@@ -834,6 +860,12 @@ function openSettingsModal() {
     document.getElementById('set_blogURL').value = globalConfig.blogURL || '';
     document.getElementById('set_tgid').value = globalConfig.tgid || '';
     document.getElementById('set_tgtoken').value = globalConfig.tgtoken || '';
+    // WebDAV 配置回显
+    document.getElementById('set_webdavUrl').value = globalConfig.webdavUrl || '';
+    document.getElementById('set_webdavUser').value = globalConfig.webdavUser || '';
+    document.getElementById('set_webdavPass').value = globalConfig.webdavPass || '';
+    document.getElementById('set_webdavRetention').value = globalConfig.webdavRetention || 7;
+    document.getElementById('set_webdavAutoBackup').checked = globalConfig.webdavAutoBackup || false;
 
     document.getElementById('settingsModal').style.display = 'block';
 }
@@ -1111,6 +1143,55 @@ window.addEventListener('load', async () => {
     document.getElementById('domainForm').addEventListener('submit', submitDomainForm);
     document.getElementById('settingsForm').addEventListener('submit', saveSettings);
 
+    // 测试 Telegram 通知按钮
+    const testTgBtn = document.getElementById('testTelegramBtn');
+    if (testTgBtn) {
+        testTgBtn.addEventListener('click', async () => {
+            const tgid = document.getElementById('set_tgid').value.trim();
+            const tgtoken = document.getElementById('set_tgtoken').value.trim();
+
+            if (!tgid || !tgtoken) {
+                alert('请先填写 Chat ID 和 Bot Token');
+                return;
+            }
+
+            // 设置加载状态
+            testTgBtn.classList.add('loading');
+            testTgBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+
+            try {
+                const response = await fetch('/api/test-telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tgid, tgtoken })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    testTgBtn.classList.remove('loading');
+                    testTgBtn.classList.add('success');
+                    testTgBtn.innerHTML = '<i class="fas fa-check"></i> 发送成功';
+                    setTimeout(() => {
+                        testTgBtn.classList.remove('success');
+                        testTgBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 测试';
+                    }, 3000);
+                } else {
+                    throw new Error(result.error || '发送失败');
+                }
+            } catch (error) {
+                testTgBtn.classList.remove('loading');
+                testTgBtn.classList.add('error');
+                testTgBtn.innerHTML = '<i class="fas fa-times"></i> 失败';
+                alert('测试失败: ' + error.message);
+                setTimeout(() => {
+                    testTgBtn.classList.remove('error');
+                    testTgBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 测试';
+                }, 3000);
+            }
+        });
+    }
+
     // 绑定搜索事件 (输入停止 300ms 后进行搜索)
     let searchTimeout;
     document.getElementById('searchBox').addEventListener('input', (e) => {
@@ -1153,4 +1234,159 @@ window.addEventListener('load', async () => {
             }, 800);
         }
     });
+
+    // WebDAV 测试连接按钮
+    const testWebdavBtn = document.getElementById('testWebdavBtn');
+    if (testWebdavBtn) {
+        testWebdavBtn.addEventListener('click', async () => {
+            const webdavUrl = document.getElementById('set_webdavUrl').value.trim();
+            const webdavUser = document.getElementById('set_webdavUser').value.trim();
+            const webdavPass = document.getElementById('set_webdavPass').value.trim();
+
+            if (!webdavUrl || !webdavUser || !webdavPass) {
+                alert('请先填写完整的 WebDAV 配置');
+                return;
+            }
+
+            testWebdavBtn.classList.add('loading');
+            testWebdavBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+
+            try {
+                const response = await fetch('/api/webdav/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ webdavUrl, webdavUser, webdavPass })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    testWebdavBtn.classList.remove('loading');
+                    testWebdavBtn.classList.add('success');
+                    testWebdavBtn.innerHTML = '<i class="fas fa-check"></i> 连接成功';
+                    setTimeout(() => {
+                        testWebdavBtn.classList.remove('success');
+                        testWebdavBtn.innerHTML = '<i class="fas fa-plug"></i> 测试';
+                    }, 3000);
+                } else {
+                    throw new Error(result.error || '连接失败');
+                }
+            } catch (error) {
+                testWebdavBtn.classList.remove('loading');
+                testWebdavBtn.classList.add('error');
+                testWebdavBtn.innerHTML = '<i class="fas fa-times"></i> 失败';
+                alert('连接失败: ' + error.message);
+                setTimeout(() => {
+                    testWebdavBtn.classList.remove('error');
+                    testWebdavBtn.innerHTML = '<i class="fas fa-plug"></i> 测试';
+                }, 3000);
+            }
+        });
+    }
+
+    // 立即备份按钮
+    const backupNowBtn = document.getElementById('backupNowBtn');
+    if (backupNowBtn) {
+        backupNowBtn.addEventListener('click', async () => {
+            backupNowBtn.disabled = true;
+            backupNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 备份中...';
+
+            try {
+                const response = await fetch('/api/webdav/backup', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('备份成功: ' + result.fileName);
+                } else {
+                    throw new Error(result.error || '备份失败');
+                }
+            } catch (error) {
+                alert('备份失败: ' + error.message);
+            } finally {
+                backupNowBtn.disabled = false;
+                backupNowBtn.innerHTML = '<i class="fas fa-upload"></i> 立即备份';
+            }
+        });
+    }
+
+    // 显示备份列表按钮
+    const showBackupsBtn = document.getElementById('showBackupsBtn');
+    const backupsModal = document.getElementById('backupsModal');
+    if (showBackupsBtn && backupsModal) {
+        showBackupsBtn.addEventListener('click', async () => {
+            backupsModal.style.display = 'block';
+            const backupsList = document.getElementById('backupsList');
+            backupsList.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch('/api/webdav/list');
+                const result = await response.json();
+
+                if (result.success && result.backups.length > 0) {
+                    backupsList.innerHTML = result.backups.map(fileName => {
+                        const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})/);
+                        const dateStr = dateMatch ? dateMatch[1] : '';
+                        return `
+                            <div class="backup-item">
+                                <div>
+                                    <div class="backup-name">${fileName}</div>
+                                    <div class="backup-date">${dateStr}</div>
+                                </div>
+                                <button class="restore-btn" data-file="${fileName}">恢复</button>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // 绑定恢复按钮事件
+                    backupsList.querySelectorAll('.restore-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            const fileName = e.target.dataset.file;
+                            if (!confirm(`确定要恢复备份 "${fileName}" 吗？\n\n⚠️ 这将覆盖当前所有域名数据！`)) {
+                                return;
+                            }
+
+                            e.target.disabled = true;
+                            e.target.textContent = '恢复中...';
+
+                            try {
+                                const response = await fetch('/api/webdav/restore', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ fileName })
+                                });
+                                const result = await response.json();
+
+                                if (result.success) {
+                                    alert(result.message);
+                                    backupsModal.style.display = 'none';
+                                    await fetchDomains();
+                                } else {
+                                    throw new Error(result.error || '恢复失败');
+                                }
+                            } catch (error) {
+                                alert('恢复失败: ' + error.message);
+                                e.target.disabled = false;
+                                e.target.textContent = '恢复';
+                            }
+                        });
+                    });
+                } else {
+                    backupsList.innerHTML = '<div class="no-backups">暂无备份文件</div>';
+                }
+            } catch (error) {
+                backupsList.innerHTML = '<div class="no-backups">加载失败: ' + error.message + '</div>';
+            }
+        });
+
+        // 关闭备份列表模态框
+        backupsModal.querySelector('.close-btn').addEventListener('click', () => {
+            backupsModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === backupsModal) {
+                backupsModal.style.display = 'none';
+            }
+        });
+    }
 });

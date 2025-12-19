@@ -7,7 +7,7 @@
     <title>域名到期监控</title>
     <link id="faviconLink" rel="icon" type="image/png" href="https://pan.811520.xyz/icon/domain-check.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="/css/style.css?v=3">
+    <link rel="stylesheet" href="/css/style.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -70,46 +70,169 @@
         </div>
     </div>
 
+    <!-- 系统设置模态框 -->
     <div id="settingsModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content settings-modal">
             <span class="close-btn">&times;</span>
             <h2><i class="fas fa-cog"></i> 系统设置</h2>
             <form id="settingsForm">
-                <div class="form-group">
-                    <label>基本设置</label>
-                    <div class="input-row">
-                        <input type="text" id="set_siteName" placeholder="网站名称">
-                        <input type="text" id="set_password" placeholder="访问密码">
+                <!-- 基本设置 -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>基本设置</span>
                     </div>
-                    <div class="input-row">
-                        <input type="number" id="set_days" placeholder="到期提醒天数 (默认30)">
-                        <input type="text" id="set_cronSchedule" placeholder="Cron 表达式 (默认 0 9,21 * * *)">
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-heading"></i> 网站名称</label>
+                            <input type="text" id="set_siteName" placeholder="域名到期监控">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-key"></i> 访问密码</label>
+                            <input type="password" id="set_password" placeholder="留空则不修改">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-bell"></i> 提醒天数</label>
+                            <input type="number" id="set_days" placeholder="30" min="1" max="365">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-clock"></i> 定时任务</label>
+                            <input type="text" id="set_cronSchedule" placeholder="0 9,21 * * *">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>外观设置</label>
-                    <input type="url" id="set_siteIcon" placeholder="网站图标 URL">
-                    <input type="url" id="set_bgimgURL" placeholder="背景图片 URL">
-                </div>
-
-                <div class="form-group">
-                    <label>链接设置</label>
-                    <input type="url" id="set_githubURL" placeholder="GitHub 链接">
-                    <div class="input-row">
-                        <input type="text" id="set_blogName" placeholder="博客名称">
-                        <input type="url" id="set_blogURL" placeholder="博客链接">
+                <!-- 外观设置 -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <i class="fas fa-palette"></i>
+                        <span>外观设置</span>
+                    </div>
+                    <div class="settings-grid single-column">
+                        <div class="setting-item">
+                            <label><i class="fas fa-image"></i> 网站图标</label>
+                            <input type="url" id="set_siteIcon" placeholder="https://example.com/icon.png">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-photo-video"></i> 背景图片</label>
+                            <input type="url" id="set_bgimgURL" placeholder="https://example.com/bg.webp">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Telegram 通知</label>
-                    <input type="text" id="set_tgid" placeholder="Telegram Chat ID">
-                    <input type="text" id="set_tgtoken" placeholder="Telegram Bot Token">
+                <!-- 链接设置 -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <i class="fas fa-link"></i>
+                        <span>链接设置</span>
+                    </div>
+                    <div class="settings-grid single-column">
+                        <div class="setting-item">
+                            <label><i class="fab fa-github"></i> GitHub 链接</label>
+                            <input type="url" id="set_githubURL" placeholder="https://github.com/...">
+                        </div>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-blog"></i> 博客名称</label>
+                            <input type="text" id="set_blogName" placeholder="My Blog">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-external-link-alt"></i> 博客链接</label>
+                            <input type="url" id="set_blogURL" placeholder="https://blog.example.com">
+                        </div>
+                    </div>
                 </div>
 
-                <button type="submit" style="background-color: #607d8b;"><i class="fa fa-save"></i> 保存设置</button>
+                <!-- Telegram 通知 -->
+                <div class="settings-section telegram-section">
+                    <div class="section-header">
+                        <i class="fab fa-telegram"></i>
+                        <span>Telegram 通知</span>
+                        <button type="button" id="testTelegramBtn" class="test-btn" title="发送测试消息">
+                            <i class="fas fa-paper-plane"></i> 测试
+                        </button>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-id-badge"></i> Chat ID</label>
+                            <input type="text" id="set_tgid" placeholder="用户ID或群组ID(负数)">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-robot"></i> Bot Token</label>
+                            <input type="text" id="set_tgtoken" placeholder="从 @BotFather 获取">
+                        </div>
+                    </div>
+                    <div class="telegram-hint">
+                        <i class="fas fa-info-circle"></i>
+                        群组 ID 通常为负数，如 <code>-1001234567890</code>
+                    </div>
+                </div>
+
+                <!-- WebDAV 备份 -->
+                <div class="settings-section webdav-section">
+                    <div class="section-header">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>WebDAV 备份</span>
+                        <button type="button" id="testWebdavBtn" class="test-btn webdav-test" title="测试连接">
+                            <i class="fas fa-plug"></i> 测试
+                        </button>
+                    </div>
+                    <div class="settings-grid single-column">
+                        <div class="setting-item">
+                            <label><i class="fas fa-server"></i> WebDAV 地址</label>
+                            <input type="url" id="set_webdavUrl" placeholder="https://dav.example.com/backup/">
+                        </div>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-user"></i> 用户名</label>
+                            <input type="text" id="set_webdavUser" placeholder="WebDAV 用户名">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-lock"></i> 密码</label>
+                            <input type="password" id="set_webdavPass" placeholder="WebDAV 密码">
+                        </div>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-calendar-alt"></i> 保留天数</label>
+                            <input type="number" id="set_webdavRetention" placeholder="7" min="1" max="365">
+                        </div>
+                        <div class="setting-item checkbox-item">
+                            <label>
+                                <input type="checkbox" id="set_webdavAutoBackup">
+                                <span><i class="fas fa-sync-alt"></i> 定时自动备份</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="webdav-actions">
+                        <button type="button" id="backupNowBtn" class="action-btn-small">
+                            <i class="fas fa-upload"></i> 立即备份
+                        </button>
+                        <button type="button" id="showBackupsBtn" class="action-btn-small secondary">
+                            <i class="fas fa-list"></i> 备份列表
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="submit" class="save-btn">
+                        <i class="fas fa-save"></i> 保存设置
+                    </button>
+                </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 备份列表模态框 -->
+    <div id="backupsModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-btn">&times;</span>
+            <h2><i class="fas fa-list"></i> 备份列表</h2>
+            <div id="backupsList" class="backups-list">
+                <div class="loading">加载中...</div>
+            </div>
         </div>
     </div>
 
@@ -154,7 +277,7 @@
         </div>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=5"></script>
 </body>
 
 </html>

@@ -83,7 +83,8 @@ app.post('/api/settings', (req, res) => {
         // 过滤只允许修改的字段
         const allowedKeys = [
             'password', 'days', 'siteName', 'siteIcon', 'bgimgURL',
-            'githubURL', 'blogURL', 'blogName', 'tgid', 'tgtoken', 'cronSchedule'
+            'githubURL', 'blogURL', 'blogName', 'tgid', 'tgtoken', 'cronSchedule',
+            'webdavUrl', 'webdavUser', 'webdavPass', 'webdavRetention', 'webdavAutoBackup'
         ];
 
         const filteredSettings = {};
@@ -93,9 +94,12 @@ app.post('/api/settings', (req, res) => {
             }
         });
 
-        // 特殊处理 days 为数字
+        // 特殊处理数字类型
         if (filteredSettings.days) {
             filteredSettings.days = Number(filteredSettings.days);
+        }
+        if (filteredSettings.webdavRetention) {
+            filteredSettings.webdavRetention = Number(filteredSettings.webdavRetention);
         }
 
         saveSettings(filteredSettings);
@@ -112,8 +116,89 @@ app.post('/api/settings', (req, res) => {
     }
 });
 
+// 测试 Telegram 通知 API (需要认证)
+const { sendTelegramMessage } = require('./telegram');
+
+app.post('/api/test-telegram', async (req, res) => {
+    const { tgid, tgtoken } = req.body;
+
+    if (!tgid || !tgtoken) {
+        return res.status(400).json({ success: false, error: '请填写 Chat ID 和 Bot Token' });
+    }
+
+    try {
+        const testMessage = `🔔 <b>域名到期监控 - 测试通知</b>\n\n✅ 恭喜！Telegram 通知配置成功！\n\n⏰ 时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`;
+
+        const success = await sendTelegramMessage(testMessage, tgid, tgtoken);
+
+        if (success) {
+            res.json({ success: true, message: '测试消息发送成功' });
+        } else {
+            res.status(500).json({ success: false, error: '发送失败，请检查配置' });
+        }
+    } catch (error) {
+        console.error('测试 Telegram 通知失败:', error);
+        res.status(500).json({ success: false, error: error.message || '发送失败' });
+    }
+});
+
 // 域名 API (需要认证)
 app.all('/api/domains', handleDomainsRequest);
+
+// WebDAV 备份 API (需要认证)
+const { backupToWebDAV, restoreFromWebDAV, listWebDAVBackups, testWebDAVConnection } = require('./webdav');
+
+// 手动备份
+app.post('/api/webdav/backup', async (req, res) => {
+    try {
+        const result = await backupToWebDAV();
+        res.json({ success: true, message: '备份成功', fileName: result.fileName });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 获取备份列表
+app.get('/api/webdav/list', async (req, res) => {
+    try {
+        const backups = await listWebDAVBackups();
+        res.json({ success: true, backups });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 恢复备份
+app.post('/api/webdav/restore', async (req, res) => {
+    try {
+        const { fileName } = req.body;
+        if (!fileName) {
+            return res.status(400).json({ success: false, error: '请选择要恢复的备份文件' });
+        }
+        const result = await restoreFromWebDAV(fileName);
+        res.json({ success: true, message: `恢复成功，共 ${result.domainsCount} 个域名` });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 测试 WebDAV 连接
+app.post('/api/webdav/test', async (req, res) => {
+    try {
+        const { webdavUrl, webdavUser, webdavPass } = req.body;
+        if (!webdavUrl || !webdavUser || !webdavPass) {
+            return res.status(400).json({ success: false, error: '请填写完整的 WebDAV 配置' });
+        }
+        const success = await testWebDAVConnection(webdavUrl, webdavUser, webdavPass);
+        if (success) {
+            res.json({ success: true, message: '连接成功' });
+        } else {
+            res.status(400).json({ success: false, error: '连接失败，请检查配置' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // 主页 (需要认证)
 app.get('/', (req, res) => {

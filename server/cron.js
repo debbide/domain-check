@@ -76,6 +76,18 @@ function initCronJob() {
         try {
             const expiringDomains = await checkDomainsScheduled();
             console.log(`[Cron] 检查完成，${expiringDomains.length} 个域名即将到期`);
+
+            // 自动 WebDAV 备份
+            const refreshedConfig = getConfig();
+            if (refreshedConfig.webdavAutoBackup && refreshedConfig.webdavUrl) {
+                try {
+                    const { backupToWebDAV } = require('./webdav');
+                    const result = await backupToWebDAV();
+                    console.log(`[Cron] 自动备份成功: ${result.fileName}`);
+                } catch (backupError) {
+                    console.error('[Cron] 自动备份失败:', backupError.message);
+                }
+            }
         } catch (error) {
             console.error('[Cron] 定时任务执行失败:', error);
         }
