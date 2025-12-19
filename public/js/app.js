@@ -877,24 +877,34 @@ function openDomainForm(domainData = null) {
     modal.style.display = 'block';
 }
 
-function openSettingsModal() {
-    document.getElementById('set_password').value = ''; // 密码不回显
-    document.getElementById('set_siteName').value = document.title;
-    document.getElementById('set_days').value = globalConfig.daysThreshold || 30;
-    document.getElementById('set_cronSchedule').value = globalConfig.cronSchedule || '';
-    document.getElementById('set_siteIcon').value = globalConfig.siteIcon || '';
-    document.getElementById('set_bgimgURL').value = globalConfig.bgimgURL || '';
-    document.getElementById('set_githubURL').value = globalConfig.githubURL || '';
-    document.getElementById('set_blogName').value = globalConfig.blogName || '';
-    document.getElementById('set_blogURL').value = globalConfig.blogURL || '';
-    document.getElementById('set_tgid').value = globalConfig.tgid || '';
-    document.getElementById('set_tgtoken').value = globalConfig.tgtoken || '';
-    // WebDAV 配置回显
-    document.getElementById('set_webdavUrl').value = globalConfig.webdavUrl || '';
-    document.getElementById('set_webdavUser').value = globalConfig.webdavUser || '';
-    document.getElementById('set_webdavPass').value = globalConfig.webdavPass || '';
-    document.getElementById('set_webdavRetention').value = globalConfig.webdavRetention || 7;
-    document.getElementById('set_webdavAutoBackup').checked = globalConfig.webdavAutoBackup || false;
+async function openSettingsModal() {
+    // 先从 API 获取完整配置
+    try {
+        const response = await fetch(SETTINGS_API);
+        if (response.ok) {
+            const config = await response.json();
+
+            document.getElementById('set_password').value = ''; // 密码不回显
+            document.getElementById('set_siteName').value = config.siteName || document.title;
+            document.getElementById('set_days').value = config.days || 30;
+            document.getElementById('set_cronSchedule').value = config.cronSchedule || '';
+            document.getElementById('set_siteIcon').value = config.siteIcon || '';
+            document.getElementById('set_bgimgURL').value = config.bgimgURL || '';
+            document.getElementById('set_githubURL').value = config.githubURL || '';
+            document.getElementById('set_blogName').value = config.blogName || '';
+            document.getElementById('set_blogURL').value = config.blogURL || '';
+            document.getElementById('set_tgid').value = config.tgid || '';
+            document.getElementById('set_tgtoken').value = config.tgtoken || '';
+            // WebDAV 配置回显
+            document.getElementById('set_webdavUrl').value = config.webdavUrl || '';
+            document.getElementById('set_webdavUser').value = config.webdavUser || '';
+            document.getElementById('set_webdavPass').value = config.webdavPass || '';
+            document.getElementById('set_webdavRetention').value = config.webdavRetention || 7;
+            document.getElementById('set_webdavAutoBackup').checked = config.webdavAutoBackup || false;
+        }
+    } catch (error) {
+        console.error('获取设置失败:', error);
+    }
 
     document.getElementById('settingsModal').style.display = 'block';
 }
