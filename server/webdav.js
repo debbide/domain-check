@@ -3,6 +3,49 @@
 const { getConfig } = require('./config');
 const { getDomainsFromFile, setDomainsToFile } = require('./storage');
 
+// 备份文件夹名称
+const BACKUP_FOLDER = 'domain-check-backups';
+
+/**
+ * 确保备份目录存在
+ */
+async function ensureBackupFolder(baseUrl, auth) {
+    const folderUrl = baseUrl.endsWith('/') ? `${baseUrl}${BACKUP_FOLDER}/` : `${baseUrl}/${BACKUP_FOLDER}/`;
+
+    try {
+        // 先检查目录是否存在
+        const checkResponse = await fetch(folderUrl, {
+            method: 'PROPFIND',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Depth': '0'
+            }
+        });
+
+        if (checkResponse.ok || checkResponse.status === 207) {
+            return folderUrl; // 目录已存在
+        }
+
+        // 目录不存在，创建它
+        const mkcolResponse = await fetch(folderUrl, {
+            method: 'MKCOL',
+            headers: {
+                'Authorization': `Basic ${auth}`
+            }
+        });
+
+        if (mkcolResponse.ok || mkcolResponse.status === 201) {
+            console.log(`[WebDAV] 已创建备份目录: ${BACKUP_FOLDER}`);
+        }
+
+        return folderUrl;
+    } catch (error) {
+        console.error('[WebDAV] 创建备份目录失败:', error.message);
+        // 如果创建失败，回退到使用原始目录
+        return baseUrl;
+    }
+}
+
 /**
  * 备份数据到 WebDAV
  */
@@ -17,6 +60,10 @@ async function backupToWebDAV() {
     try {
         // 获取所有域名数据
         const domains = await getDomainsFromFile();
+        const auth = Buffer.from(`${webdavUser}:${webdavPass}`).toString('base64');
+
+        // 确保备份目录存在
+        const backupFolderUrl = await ensureBackupFolder(webdavUrl, auth);
 
         // 构建备份数据
         const backupData = {
@@ -40,12 +87,10 @@ async function backupToWebDAV() {
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         const fileName = `domain-check-backup-${dateStr}.json`;
 
-        // 构建完整的 WebDAV URL
-        const uploadUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${fileName}` : `${webdavUrl}/${fileName}`;
+        // 构建完整的 WebDAV URL (使用备份文件夹)
+        const uploadUrl = backupFolderUrl.endsWith('/') ? `${backupFolderUrl}${fileName}` : `${backupFolderUrl}/${fileName}`;
 
         // 使用 PUT 方法上传到 WebDAV
-        const auth = Buffer.from(`${webdavUser}:${webdavPass}`).toString('base64');
-
         const response = await fetch(uploadUrl, {
             method: 'PUT',
             headers: {
@@ -59,12 +104,12 @@ async function backupToWebDAV() {
             throw new Error(`WebDAV 上传失败: ${response.status} ${response.statusText}`);
         }
 
-        console.log(`[WebDAV] 备份成功: ${fileName}`);
+        console.log(`[WebDAV] 备份成功: ${BACKUP_FOLDER}/${fileName}`);
 
         // 清理旧备份 (保留最近7天)
         await cleanupOldBackups();
 
-        return { success: true, fileName };
+        return { success: true, fileName: `${BACKUP_FOLDER}/${fileName}` };
     } catch (error) {
         console.error('[WebDAV] 备份失败:', error.message);
         throw error;
@@ -83,8 +128,11 @@ async function restoreFromWebDAV(fileName) {
     }
 
     try {
-        const downloadUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${fileName}` : `${webdavUrl}/${fileName}`;
         const auth = Buffer.from(`${webdavUser}:${webdavPass}`).toString('base64');
+
+        // 使用备份文件夹路径
+        const backupFolderUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${BACKUP_FOLDER}/` : `${webdavUrl}/${BACKUP_FOLDER}/`;
+        const downloadUrl = `${backupFolderUrl}${fileName}`;
 
         const response = await fetch(downloadUrl, {
             method: 'GET',
@@ -135,8 +183,11 @@ async function listWebDAVBackups() {
     try {
         const auth = Buffer.from(`${webdavUser}:${webdavPass}`).toString('base64');
 
+        // 使用备份文件夹路径
+        const backupFolderUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${BACKUP_FOLDER}/` : `${webdavUrl}/${BACKUP_FOLDER}/`;
+
         // 使用 PROPFIND 获取文件列表
-        const response = await fetch(webdavUrl, {
+        const response = await fetch(backupFolderUrl, {
             method: 'PROPFIND',
             headers: {
                 'Authorization': `Basic ${auth}`,
@@ -196,7 +247,9 @@ async function cleanupOldBackups() {
             // 从文件名提取日期
             const match = fileName.match(/domain-check-backup-([\d-]+)\.json/);
             if (match && match[1] < cutoffStr) {
-                const deleteUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${fileName}` : `${webdavUrl}/${fileName}`;
+                // 使用备份文件夹路径
+                const backupFolderUrl = webdavUrl.endsWith('/') ? `${webdavUrl}${BACKUP_FOLDER}/` : `${webdavUrl}/${BACKUP_FOLDER}/`;
+                const deleteUrl = `${backupFolderUrl}${fileName}`;
 
                 await fetch(deleteUrl, {
                     method: 'DELETE',
