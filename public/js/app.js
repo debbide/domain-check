@@ -12,6 +12,30 @@ let currentStatusFilter = ''; // 概览信息卡默认为空
 let globalConfig = { daysThreshold: 30 }; // 默认30天内为将到期
 let lastOperatedDomain = null; // 存储最近操作的域名，用于临时置顶
 
+// 右上角气泡提示
+function showToast(message, type = 'success') {
+    // 移除已有的 toast
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+
+    // 动画显示
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // 3秒后消失
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 // 格式化日期为 YYYY-MM-DD
 function formatDate(date) {
     const d = new Date(date);
@@ -560,14 +584,18 @@ async function saveSettings(e) {
         if (!response.ok) throw new Error('保存设置失败');
 
         const result = await response.json();
-        alert('设置已保存，部分配置（如网站名称）将在刷新后生效');
+
+        // 关闭面板
         document.getElementById('settingsModal').style.display = 'none';
 
-        // 如果修改了密码，可能需要重新登录，或者只是刷新配置
+        // 显示右上角气泡提示
+        showToast('设置已保存', 'success');
+
+        // 刷新配置
         await fetchConfig();
     } catch (error) {
         console.error('保存设置失败:', error);
-        alert('保存设置失败: ' + error.message);
+        showToast('保存失败: ' + error.message, 'error');
     }
 }
 
