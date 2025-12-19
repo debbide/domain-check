@@ -1,0 +1,152 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="/css/style.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="header">
+        <h1 id="siteTitle"><i class="fas fa-clock"></i> 域名到期监控</h1>
+        <div class="action-buttons">
+            <button id="darkModeToggle" title="切换深色模式"><i class="fas fa-moon"></i></button>
+            <button id="settingsBtn" class="action-btn settings-btn" style="background-color: #607d8b;"><i
+                    class="fas fa-cog"></i> 系统设置</button>
+            <button id="addDomainBtn" class="action-btn add-btn"><i class="fas fa-plus"></i> 添加域名</button>
+            <button id="exportDataBtn" class="action-btn export-btn"><i class="fas fa-download"></i> 导出数据</button>
+            <button id="importDataBtn" class="action-btn import-btn"><i class="fas fa-upload"></i> 导入数据</button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        </div>
+    </div>
+
+    <div id="domainFormModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>添加/编辑域名</h2>
+            <form id="domainForm">
+                <input type="hidden" id="editOriginalDomain">
+                <label for="domain"><i class="fa fa-globe"></i> 域名</label>
+                <textarea id="domain" rows="3" placeholder="支持批量添加: example.com, test.com (用逗号、空格或换行分隔)"
+                    required></textarea>
+
+                <div id="domainFillWarning" class="form-warning"></div>
+
+                <label for="registrationDate"><i class="fa fa-calendar"></i> 注册时间 (YYYY-MM-DD)</label>
+                <input type="date" id="registrationDate" required>
+
+                <label for="renewalPeriod"><i class="fas fa-history"></i> 续费周期 (可选)</label>
+                <div class="renewal-group">
+                    <input type="number" id="renewalPeriod" min="1" max="100" placeholder="例如: 1, 填写后会自动计算到期时间"
+                        value="">
+                    <select id="renewalUnit">
+                        <option value="year">年</option>
+                        <option value="month">月</option>
+                    </select>
+                </div>
+
+                <label for="expirationDate"><i class="fa fa-calendar"></i> 到期时间 (YYYY-MM-DD)</label>
+                <input type="date" id="expirationDate" required>
+
+                <label for="system"><i class="fa fa-registered"></i> 注册商名称</label>
+                <input type="text" id="system" placeholder="例如: cloudflare">
+
+                <label for="systemURL"><i class="fa fa-link"></i> 注册商地址</label>
+                <input type="url" id="systemURL" placeholder="例如: https://dash.cloudflare.com">
+
+                <label for="registerAccount"><i class="fa fa-user"></i> 注册账号 (可选)</label>
+                <input type="text" id="registerAccount" placeholder="例如: admin@example.com">
+
+                <label for="groups"><i class="fa fa-tags"></i> 分组 (可选)</label>
+                <input type="text" id="groups" placeholder="多个分组可用英文逗号分隔, 例如: 主要, 个人, 待续费">
+
+                <button type="submit"><i class="fa fa-save"></i> 保存</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-btn">&times;</span>
+            <h2><i class="fas fa-cog"></i> 系统设置</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label>基本设置</label>
+                    <div class="input-row">
+                        <input type="text" id="set_siteName" placeholder="网站名称">
+                        <input type="text" id="set_password" placeholder="访问密码">
+                    </div>
+                    <div class="input-row">
+                        <input type="number" id="set_days" placeholder="到期提醒天数 (默认30)">
+                        <input type="text" id="set_cronSchedule" placeholder="Cron 表达式 (默认 0 9,21 * * *)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>外观设置</label>
+                    <input type="url" id="set_siteIcon" placeholder="网站图标 URL">
+                    <input type="url" id="set_bgimgURL" placeholder="背景图片 URL">
+                </div>
+
+                <div class="form-group">
+                    <label>链接设置</label>
+                    <input type="url" id="set_githubURL" placeholder="GitHub 链接">
+                    <div class="input-row">
+                        <input type="text" id="set_blogName" placeholder="博客名称">
+                        <input type="url" id="set_blogURL" placeholder="博客链接">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Telegram 通知</label>
+                    <input type="text" id="set_tgid" placeholder="Telegram Chat ID">
+                    <input type="text" id="set_tgtoken" placeholder="Telegram Bot Token">
+                </div>
+
+                <button type="submit" style="background-color: #607d8b;"><i class="fa fa-save"></i> 保存设置</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 图表容器 -->
+    <div id="chartsContainer" class="charts-container" style="display: none;">
+        <div class="chart-wrapper">
+            <canvas id="statusChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="registrarChart"></canvas>
+        </div>
+    </div>
+
+    <div id="summary" class="summary-container"></div>
+
+    <div class="controls-container">
+        <div id="groupTabs" class="tabs-container">
+            <button class="tab-btn active" data-group="全部">全部</button>
+            <button class="tab-btn" data-group="一级域名">一级域名</button>
+            <button class="tab-btn" data-group="二级域名">二级域名</button>
+            <button class="tab-btn" data-group="未分组">未分组</button>
+        </div>
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchBox" placeholder="支持全文模糊搜索">
+        </div>
+    </div>
+
+    <div id="domainList" class="domain-grid"></div>
+    <div id="pagination" class="pagination"></div>
+    <div id="footer"></div>
+
+    <!-- 批量操作栏 -->
+    <div id="batchToolbar" class="batch-toolbar">
+        <div class="batch-info">
+            <label><input type="checkbox" id="selectAllBtn"> 全选</label>
+            <span>已选 <span id="selectedCount">0</span> 项</span>
+        </div>
+        <div class="batch-actions">
+            <button id="batchDeleteBtn" class="action-btn" style="background-color: #ef4444;"><i
+                    class="fas fa-trash"></i> 批量删除</button>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+
+</html>

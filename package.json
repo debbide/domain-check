@@ -1,0 +1,19 @@
+{
+  "name": "domain-check",
+  "version": "1.0.0",
+  "description": "域名到期监控系统 - Docker 版本",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": ["domain", "monitoring", "whois", "docker"],
+  "author": "Yutian81",
+  "license": "MIT",
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
+  }
+}
