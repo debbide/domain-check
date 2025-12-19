@@ -9,7 +9,7 @@ RUN apk add --no-cache whois
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN npm install --production && npm cache clean --force
 
 # Copy application code
 COPY server ./server

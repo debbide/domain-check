@@ -97,10 +97,7 @@ async function fetchConfig() {
                 if (config.blogName && config.blogURL) {
                     footerHtml += `<a href="${config.blogURL}" target="_blank"><i class="fas fa-link"></i> ${config.blogName}</a>`;
                 }
-                if (config.githubURL) {
-                    if (config.blogName && config.blogURL) footerHtml += ' | ';
-                    footerHtml += `<a href="${config.githubURL}" target="_blank"><i class="fab fa-github"></i> GitHub</a>`;
-                }
+                // GitHub 链接已移除
                 footerHtml += '</p>';
                 footerEl.innerHTML = footerHtml;
             }
@@ -421,7 +418,10 @@ async function saveSettings(e) {
     const newSettings = {
         password: document.getElementById('set_password').value,
         siteName: document.getElementById('set_siteName').value,
-        daysThreshold: parseInt(document.getElementById('set_daysThreshold').value),
+        days: parseInt(document.getElementById('set_days').value) || 30,
+        cronSchedule: document.getElementById('set_cronSchedule').value,
+        siteIcon: document.getElementById('set_siteIcon').value,
+        bgimgURL: document.getElementById('set_bgimgURL').value,
         githubURL: document.getElementById('set_githubURL').value,
         blogName: document.getElementById('set_blogName').value,
         blogURL: document.getElementById('set_blogURL').value,
@@ -712,7 +712,10 @@ function openDomainForm(domainData = null) {
 function openSettingsModal() {
     document.getElementById('set_password').value = ''; // 密码不回显
     document.getElementById('set_siteName').value = document.title;
-    document.getElementById('set_daysThreshold').value = globalConfig.daysThreshold;
+    document.getElementById('set_days').value = globalConfig.daysThreshold || 30;
+    document.getElementById('set_cronSchedule').value = globalConfig.cronSchedule || '';
+    document.getElementById('set_siteIcon').value = globalConfig.siteIcon || '';
+    document.getElementById('set_bgimgURL').value = globalConfig.bgimgURL || '';
     document.getElementById('set_githubURL').value = globalConfig.githubURL || '';
     document.getElementById('set_blogName').value = globalConfig.blogName || '';
     document.getElementById('set_blogURL').value = globalConfig.blogURL || '';

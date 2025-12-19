@@ -1,6 +1,6 @@
 // server/telegram.js - Telegram 通知模块
 
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch'); // Native fetch used in Node 20+
 
 async function sendTelegramMessage(message, tgid, tgtoken) {
     if (!tgid || !tgtoken) {
