@@ -27,8 +27,16 @@ function getConfig() {
         webdavAutoBackup: process.env.WEBDAV_AUTO_BACKUP === 'true'
     };
 
-    // 合并配置，文件配置优先
-    return { ...defaults, ...settings };
+    // 合并配置
+    // 对于已保存的设置，即使值是空字符串也应优先使用（表示用户主动清空）
+    const config = { ...defaults };
+    for (const key in settings) {
+        if (settings[key] !== undefined) {
+            config[key] = settings[key];
+        }
+    }
+
+    return config;
 }
 
 // 常见的多级公共后缀列表 (按常见程度排序)
