@@ -11,13 +11,4 @@ services:
       - ./data:/app/data
     environment:
       - PASSWORD=${PASSWORD:-123123}
-      - DAYS=${DAYS:-30}
-      - SITENAME=${SITENAME:-域名到期监控}
-      - ICON=${ICON:-}
-      - BGIMG=${BGIMG:-}
-      - GITHUB_URL=${GITHUB_URL:-https://github.com/yutian81/domain-check}
-      - BLOG_URL=${BLOG_URL:-}
-      - BLOG_NAME=${BLOG_NAME:-}
-      - TGID=${TGID:-}
-      - TGTOKEN=${TGTOKEN:-}
-      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 9,21 * * *}
+      - PORT=${PORT:-3000}

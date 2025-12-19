@@ -40,11 +40,6 @@ services:
       - ./data:/app/data
     environment:
       - PASSWORD=123123              # 访问密码
-      - DAYS=30                      # 到期提醒阈值(天)
-      - SITENAME=域名到期监控        # 网站标题
-      - TGID=                        # Telegram 机器人 ID
-      - TGTOKEN=                     # Telegram Token
-      - CRON_SCHEDULE=0 9,21 * * *   # 定时任务表达式 (每天9点和21点)
 ```
 
 ### 2. 启动服务
@@ -61,11 +56,8 @@ docker-compose up -d
 |--------|------|--------|
 | `PORT` | 服务端口 | `3000` |
 | `PASSWORD` | 访问密码 | `123123` |
-| `DAYS` | 到期提醒阈值(天) | `30` |
-| `SITENAME` | 网站标题 | `域名到期监控` |
-| `TGID` | Telegram Chat ID | 空 |
-| `TGTOKEN` | Telegram Bot Token | 空 |
-| `CRON_SCHEDULE` | 定时检查时间 (Cron表达式) | `0 9,21 * * *` |
+
+> 其他配置（如网站标题、Telegram 通知、定时任务等）请在登录后的 **设置面板** 中进行配置。
 
 ## 许可证
 
