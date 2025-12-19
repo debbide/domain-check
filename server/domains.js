@@ -55,6 +55,8 @@ async function handlePostDomain(req, res) {
             const domainName = domainData.domain;
             const isPrimary = isPrimaryDomain(domainName);
 
+            console.log(`[添加域名] ${domainName}, 是否一级域名: ${isPrimary}, 到期时间: ${domainData.expirationDate || '未填写'}`);
+
             // 查重
             if (currentDomains.some(d => d.domain === domainName)) {
                 failCount++;
@@ -64,17 +66,22 @@ async function handlePostDomain(req, res) {
 
             // WHOIS 自动填充 (仅对一级域名且未提供日期)
             if (isPrimary && !domainData.expirationDate) {
+                console.log(`[WHOIS] 开始查询 ${domainName}...`);
                 try {
                     const apiData = await fetchDomainFromAPI(domainName);
+                    console.log(`[WHOIS] 查询结果:`, apiData);
                     if (apiData) {
                         domainData.registrationDate = apiData.creationDate;
                         domainData.expirationDate = apiData.expiryDate;
                         domainData.system = apiData.registrar;
                         domainData.systemURL = apiData.registrarUrl;
+                        console.log(`[WHOIS] 填充成功: 到期日期 ${apiData.expiryDate}`);
                     }
                 } catch (e) {
-                    console.error(`WHOIS failed for ${domainName}:`, e);
+                    console.error(`[WHOIS] 查询失败 ${domainName}:`, e);
                 }
+            } else {
+                console.log(`[WHOIS] 跳过查询: isPrimary=${isPrimary}, expirationDate=${domainData.expirationDate}`);
             }
 
             // 再次检查必填项 (如果 WHOIS 失败或者不是一级域名)

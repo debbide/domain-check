@@ -26,14 +26,127 @@ function isValidDomainFormat(domain) {
     return domainRegex.test(domain.toLowerCase());
 }
 
+// 常见的多级公共后缀列表 (按常见程度排序)
+const MULTI_LEVEL_SUFFIXES = [
+    // 国别二级后缀
+    'com.cn', 'net.cn', 'org.cn', 'gov.cn', 'edu.cn', 'mil.cn', 'ac.cn',
+    'co.uk', 'org.uk', 'me.uk', 'net.uk', 'ltd.uk', 'plc.uk', 'gov.uk', 'ac.uk',
+    'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au', 'asn.au', 'id.au',
+    'co.jp', 'or.jp', 'ne.jp', 'ac.jp', 'ad.jp', 'ed.jp', 'go.jp', 'gr.jp',
+    'co.kr', 'or.kr', 'ne.kr', 're.kr', 'pe.kr', 'go.kr', 'mil.kr', 'ac.kr',
+    'com.tw', 'net.tw', 'org.tw', 'edu.tw', 'gov.tw', 'idv.tw', 'game.tw',
+    'com.hk', 'net.hk', 'org.hk', 'gov.hk', 'edu.hk', 'idv.hk',
+    'com.sg', 'net.sg', 'org.sg', 'edu.sg', 'gov.sg', 'per.sg',
+    'co.nz', 'net.nz', 'org.nz', 'edu.nz', 'govt.nz', 'iwi.nz', 'maori.nz',
+    'com.br', 'net.br', 'org.br', 'gov.br', 'edu.br', 'mil.br', 'art.br',
+    'co.in', 'net.in', 'org.in', 'gen.in', 'firm.in', 'ind.in', 'nic.in', 'ac.in', 'edu.in', 'res.in', 'gov.in', 'mil.in',
+    'com.mx', 'net.mx', 'org.mx', 'edu.mx', 'gob.mx',
+    'co.za', 'net.za', 'org.za', 'edu.za', 'gov.za', 'nom.za', 'web.za',
+    'com.my', 'net.my', 'org.my', 'edu.my', 'gov.my', 'mil.my', 'name.my',
+    'com.ph', 'net.ph', 'org.ph', 'edu.ph', 'gov.ph', 'mil.ph',
+    'co.th', 'in.th', 'ac.th', 'go.th', 'mi.th', 'or.th', 'net.th',
+    'com.vn', 'net.vn', 'org.vn', 'edu.vn', 'gov.vn', 'int.vn', 'ac.vn', 'biz.vn', 'info.vn', 'name.vn', 'pro.vn', 'health.vn',
+    'com.ru', 'net.ru', 'org.ru', 'pp.ru',
+    'co.id', 'or.id', 'ac.id', 'sch.id', 'go.id', 'mil.id', 'net.id', 'web.id', 'biz.id', 'my.id',
+    // 欧洲
+    'co.de', 'com.de',
+    'co.it',
+    'com.fr',
+    'co.nl', 'com.nl',
+    'co.pl', 'com.pl', 'net.pl', 'org.pl',
+    // 其他常见
+    'com.ar', 'net.ar', 'org.ar', 'gov.ar', 'mil.ar', 'int.ar',
+    'com.tr', 'net.tr', 'org.tr', 'biz.tr', 'info.tr', 'tv.tr', 'gen.tr', 'web.tr', 'tel.tr', 'av.tr', 'dr.tr', 'bbs.tr', 'pol.tr', 'edu.tr', 'k12.tr', 'gov.tr', 'mil.tr', 'bel.tr',
+    // 特殊后缀
+    'github.io', 'gitlab.io', 'pages.dev', 'workers.dev', 'vercel.app', 'netlify.app', 'herokuapp.com', 'appspot.com',
+    'blogspot.com', 'blogspot.jp', 'blogspot.co.uk',
+    's3.amazonaws.com', 'cloudfront.net',
+    'azurewebsites.net', 'cloudapp.azure.com',
+];
+
 // 判断是一级域名还是二级域名
 function getDomainLevel(domain) {
-    const parts = domain.split('.');
-    if (parts.length <= 2) return '一级域名';
+    if (!domain) return '二级域名';
+    const lowerDomain = domain.toLowerCase();
+    const parts = lowerDomain.split('.');
+
+    // 至少需要两部分才能是有效域名
+    if (parts.length < 2) return '二级域名';
+
+    // 检查是否匹配多级后缀
+    for (const suffix of MULTI_LEVEL_SUFFIXES) {
+        if (lowerDomain.endsWith('.' + suffix)) {
+            const suffixParts = suffix.split('.').length;
+            // 一级域名 = 后缀部分数 + 1 (域名本身)
+            if (parts.length === suffixParts + 1) return '一级域名';
+            return '二级域名';
+        }
+    }
+
+    // 默认情况：两部分即为一级域名 (如 example.com)
+    if (parts.length === 2) return '一级域名';
     return '二级域名';
 }
 function isPrimaryDomain(domain) {
     return getDomainLevel(domain) === '一级域名';
+}
+
+// 自动 WHOIS 查询并填充表单
+let whoisTimeout = null;
+async function autoFetchWhois(domain) {
+    // 仅对一级域名触发自动查询
+    if (!isPrimaryDomain(domain)) {
+        return;
+    }
+
+    // 检查域名格式是否有效
+    if (!isValidDomainFormat(domain)) {
+        return;
+    }
+
+    // 如果已经填写了到期日期，不需要自动查询
+    const expirationDateEl = document.getElementById('expirationDate');
+    if (expirationDateEl && expirationDateEl.value) {
+        return;
+    }
+
+    // 显示加载提示
+    const domainEl = document.getElementById('domain');
+    const originalPlaceholder = domainEl.placeholder;
+    domainEl.placeholder = '正在查询 WHOIS 信息...';
+
+    try {
+        const response = await fetch(`/api/whois/${encodeURIComponent(domain)}`);
+        if (!response.ok) {
+            console.log(`WHOIS 查询失败: ${response.status}`);
+            return;
+        }
+
+        const result = await response.json();
+        if (result.success && result.data) {
+            const data = result.data;
+
+            // 填充表单字段
+            if (data.creationDate) {
+                document.getElementById('registrationDate').value = formatDate(new Date(data.creationDate));
+            }
+            if (data.expiryDate) {
+                document.getElementById('expirationDate').value = formatDate(new Date(data.expiryDate));
+            }
+            if (data.registrar && !document.getElementById('system').value) {
+                document.getElementById('system').value = data.registrar;
+            }
+            if (data.registrarUrl && !document.getElementById('systemURL').value) {
+                document.getElementById('systemURL').value = data.registrarUrl;
+            }
+
+            console.log(`[WHOIS] 自动填充成功: ${domain}`);
+        }
+    } catch (error) {
+        console.error(`[WHOIS] 查询出错:`, error);
+    } finally {
+        domainEl.placeholder = originalPlaceholder;
+    }
 }
 
 // 自动计算域名到期日期
@@ -1023,8 +1136,21 @@ window.addEventListener('load', async () => {
         el.addEventListener('input', calculateExpirationDate);
     });
 
-    // 监听域名输入，动态切换必填状态和提示
+    // 监听域名输入，动态切换必填状态和提示，并触发 WHOIS 自动查询
     domainEl.addEventListener('input', (e) => {
         updateFormRequiredStatus(e.target.value);
+
+        // 清除之前的定时器
+        if (whoisTimeout) {
+            clearTimeout(whoisTimeout);
+        }
+
+        // 输入停止 800ms 后触发 WHOIS 查询
+        const domain = e.target.value.trim();
+        if (domain && isValidDomainFormat(domain)) {
+            whoisTimeout = setTimeout(() => {
+                autoFetchWhois(domain);
+            }, 800);
+        }
     });
 });
