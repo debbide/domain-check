@@ -767,12 +767,12 @@ async function submitDomainForm(e) {
     }
 
     const commonData = {
-        registrationDate: document.getElementById('registrationDate').value,
-        expirationDate: document.getElementById('expirationDate').value,
-        system: document.getElementById('system').value,
-        systemURL: document.getElementById('systemURL').value,
-        registerAccount: document.getElementById('registerAccount').value,
-        groups: document.getElementById('groups').value,
+        registrationDate: document.getElementById('registrationDate').value || null,
+        expirationDate: document.getElementById('expirationDate').value || null,
+        system: document.getElementById('system').value || null,
+        systemURL: document.getElementById('systemURL').value || null,
+        registerAccount: document.getElementById('registerAccount').value || null,
+        groups: document.getElementById('groups').value || null,
         renewalPeriod: document.getElementById('renewalPeriod').value ? parseInt(document.getElementById('renewalPeriod').value) : null,
         renewalUnit: document.getElementById('renewalUnit').value || null,
     };
