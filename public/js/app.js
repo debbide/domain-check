@@ -1,6 +1,7 @@
 
 const DOMAINS_API = '/api/domains';
 const CONFIG_API = '/api/config';
+const SETTINGS_API = '/api/settings';
 const ITEMS_PER_PAGE = 12; // 每页12个域名信息卡
 let allDomains = []; // 存储所有域名数据
 let currentFilteredDomains = []; // 存储当前过滤和搜索后的数据
