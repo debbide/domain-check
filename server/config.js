@@ -36,6 +36,11 @@ function getConfig() {
         }
     }
 
+    // 关键配置项空值保护：如果为空则使用默认值
+    if (!config.cronSchedule || config.cronSchedule.trim() === '') {
+        config.cronSchedule = defaults.cronSchedule;
+    }
+
     return config;
 }
 
